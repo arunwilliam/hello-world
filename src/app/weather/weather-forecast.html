@@ -1,0 +1,104 @@
+<div class="wf">
+  <header class="wf__header">
+    <h1>Weather forecast</h1>
+    <p class="wf__subtitle">
+      Powered by
+      <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open‑Meteo</a>
+      (free, no API key).
+    </p>
+  </header>
+
+  <section class="wf__panel wf__toolbar" aria-label="Location">
+    <div class="wf__toolbar-row">
+      <label class="wf__label">
+        <span class="wf__sr">Search location</span>
+        <input
+          type="search"
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="searchPlaces()"
+          placeholder="Search city or place"
+          autocomplete="off"
+          class="wf__input"
+        />
+      </label>
+      <button type="button" class="wf__btn" (click)="searchPlaces()" [disabled]="geoLoading()">
+        {{ geoLoading() ? 'Searching…' : 'Search' }}
+      </button>
+      <button type="button" class="wf__btn wf__btn--ghost" (click)="useMyLocation()" [disabled]="geoLoading()">
+        My location
+      </button>
+      <button type="button" class="wf__btn wf__btn--ghost" (click)="refresh()" [disabled]="loading()">
+        Refresh
+      </button>
+    </div>
+    @if (searchError()) {
+      <p class="wf__msg wf__msg--warn" role="alert">{{ searchError() }}</p>
+    }
+    @if (searchResults().length > 1) {
+      <ul class="wf__results" aria-label="Search results">
+        @for (r of searchResults(); track r.latitude + '_' + r.longitude + '_' + r.name) {
+          <li>
+            <button type="button" class="wf__result" (click)="pickSearchResult(r)">
+              {{ placeLabel(r) }}
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  @if (loading()) {
+    <p class="wf__msg" aria-busy="true">Loading forecast…</p>
+  }
+  @if (error(); as err) {
+    <p class="wf__msg wf__msg--err" role="alert">{{ err }}</p>
+  }
+
+  @if (!loading() && forecast(); as fc) {
+    <section class="wf__panel" aria-labelledby="wf-current-heading">
+      <h2 id="wf-current-heading" class="wf__heading">Currently — {{ selectedPlace().name }}</h2>
+      <p class="wf__coords">
+        {{ fc.latitude | number: '1.2-2' }}°, {{ fc.longitude | number: '1.2-2' }}°
+        @if (fc.timezone) {
+          <span class="wf__muted"> · {{ fc.timezone }}</span>
+        }
+      </p>
+      @if (fc.current; as cur) {
+        <div class="wf__current">
+          <span class="wf__temp-big">{{ cur.temperature_2m | number: '1.0-1' }}°C</span>
+          <span class="wf__desc">{{ describeCode(cur.weather_code) }}</span>
+          @if (cur.apparent_temperature != null) {
+            <span class="wf__meta">Feels like {{ cur.apparent_temperature | number: '1.0-1' }}°C</span>
+          }
+          @if (cur.precipitation != null) {
+            <span class="wf__meta">Rain {{ cur.precipitation | number: '1.1-2' }} mm</span>
+          }
+          @if (cur.wind_speed_10m != null) {
+            <span class="wf__meta">Wind {{ cur.wind_speed_10m | number: '1.0-1' }} km/h</span>
+          }
+        </div>
+      }
+    </section>
+
+    @if (dailyRows().length) {
+      <section class="wf__panel" aria-labelledby="wf-daily-heading">
+        <h2 id="wf-daily-heading" class="wf__heading">Daily outlook</h2>
+        <div class="wf__daily" role="list">
+          @for (row of dailyRows(); track row.date) {
+            <article class="wf__day" role="listitem">
+              <span class="wf__day-date">{{ row.date }}</span>
+              <span class="wf__day-desc">{{ describeCode(row.weatherCode) }}</span>
+              <span class="wf__day-temps">{{ row.minC | number: '1.0-1' }}° → {{ row.maxC | number: '1.0-1' }}°C</span>
+              @if (row.precipPct != null) {
+                <span class="wf__day-meta">Rain chance {{ row.precipPct }}%</span>
+              }
+              @if (row.windKmh != null) {
+                <span class="wf__day-meta">Wind {{ row.windKmh | number: '1.0-0' }} km/h</span>
+              }
+            </article>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>
